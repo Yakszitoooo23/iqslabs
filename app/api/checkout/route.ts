@@ -1,6 +1,5 @@
 import { createHmac, randomBytes } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { getStripe } from '@/lib/stripe';
 import { getServiceSupabase } from '@/lib/supabase';
 
@@ -8,19 +7,6 @@ type PaymentMethodChoice = 'paypal' | 'google_pay' | 'card';
 
 const CHECKOUT_VERIFY_COOKIE = 'checkout_verify_nonce';
 const COOKIE_MAX_AGE_SEC = 3600;
-
-function paymentTypesForMethod(
-  method: PaymentMethodChoice,
-): Stripe.Checkout.SessionCreateParams.PaymentMethodType[] {
-  switch (method) {
-    case 'paypal':
-      return ['paypal', 'card'];
-    case 'google_pay':
-    case 'card':
-    default:
-      return ['card', 'paypal'];
-  }
-}
 
 function requireEnv(name: string): string | null {
   const value = process.env[name]?.trim();
@@ -105,7 +91,6 @@ export async function POST(req: NextRequest) {
 
     const session = await getStripe().checkout.sessions.create({
       mode: 'subscription',
-      payment_method_types: paymentTypesForMethod(method),
       customer_email: trimmedEmail,
       line_items: [
         { price: setupFeePriceId, quantity: 1 },
